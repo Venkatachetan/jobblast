@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JobBlast Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #07070f;
+    --surface: #0f0f1a;
+    --card: #13131e;
+    --border: #1c1c2e;
+    --accent: #00e5a0;
+    --accent2: #7c6aff;
+    --warn: #ff6b6b;
+    --yellow: #ffd080;
+    --text: #e8e8f2;
+    --muted: #5a5a78;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+  }
+
+  /* Animated grid bg */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,160,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,160,0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none; z-index: 0;
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; padding: 36px 24px; }
+
+  /* ── HEADER ── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 40px;
+    animation: slideDown 0.5s ease both;
+  }
+
+  .logo { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -1px; }
+  .logo span { color: var(--accent); }
+
+  .header-right { display: flex; align-items: center; gap: 12px; }
+
+  .status-pill {
+    display: flex; align-items: center; gap: 7px;
+    padding: 6px 14px; border-radius: 100px;
+    font-size: 11px; font-weight: 500;
+    border: 1px solid rgba(0,229,160,0.25);
+    background: rgba(0,229,160,0.07);
+    color: var(--accent);
+    transition: all 0.3s;
+  }
+
+  .status-pill.running {
+    border-color: rgba(255,208,128,0.4);
+    background: rgba(255,208,128,0.08);
+    color: var(--yellow);
+  }
+
+  .status-pill.error {
+    border-color: rgba(255,107,107,0.4);
+    background: rgba(255,107,107,0.08);
+    color: var(--warn);
+  }
+
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: currentColor;
+    animation: pulse 2s infinite;
+  }
+
+  .btn-run {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 18px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+
+  .btn-run:hover { background: #00ffc0; transform: translateY(-1px); }
+  .btn-run:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* ── STAT CARDS ── */
+  .stats {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 14px; margin-bottom: 28px;
+    animation: fadeUp 0.5s 0.1s ease both;
+  }
+
+  .stat {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 22px 20px;
+    position: relative; overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: default;
+  }
+
+  .stat::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    opacity: 0; transition: opacity 0.2s;
+  }
+
+  .stat:hover { transform: translateY(-3px); }
+  .stat:hover::after { opacity: 1; }
+
+  .stat.sent::after   { background: var(--accent); }
+  .stat.skip::after   { background: var(--accent2); }
+  .stat.fail::after   { background: var(--warn); }
+  .stat.total::after  { background: var(--yellow); }
+
+  .stat:hover.sent   { border-color: rgba(0,229,160,0.35); }
+  .stat:hover.skip   { border-color: rgba(124,106,255,0.35); }
+  .stat:hover.fail   { border-color: rgba(255,107,107,0.35); }
+  .stat:hover.total  { border-color: rgba(255,208,128,0.35); }
+
+  .stat-icon { font-size: 22px; margin-bottom: 10px; }
+  .stat-num {
+    font-family: 'Syne', sans-serif; font-size: 40px; font-weight: 800;
+    line-height: 1; margin-bottom: 4px;
+  }
+  .stat.sent  .stat-num { color: var(--accent); }
+  .stat.skip  .stat-num { color: var(--accent2); }
+  .stat.fail  .stat-num { color: var(--warn); }
+  .stat.total .stat-num { color: var(--yellow); }
+  .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
+
+  /* ── TWO COL ── */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+  /* ── SECTION TITLE ── */
+  .sec-title {
+    font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 2px;
+    margin-bottom: 12px; display: flex; align-items: center; gap: 10px;
+  }
+  .sec-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 22px;
+    animation: fadeUp 0.5s 0.2s ease both;
+  }
+
+  /* ── SCHEDULE INFO ── */
+  .schedule-row {
+    display: flex; flex-direction: column; gap: 12px;
+  }
+
+  .sched-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; border-radius: 8px;
+    background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+  }
+
+  .sched-label { font-size: 11px; color: var(--muted); }
+  .sched-val   { font-size: 12px; color: var(--text); }
+  .sched-val.green { color: var(--accent); }
+  .sched-val.purple { color: var(--accent2); }
+
+  /* ── RUNS TABLE ── */
+  .runs-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .runs-table th {
+    text-align: left; padding: 8px 10px;
+    color: var(--muted); font-weight: 500; letter-spacing: 1px;
+    text-transform: uppercase; border-bottom: 1px solid var(--border);
+  }
+  .runs-table td {
+    padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.03);
+    color: var(--text);
+  }
+  .runs-table tr:last-child td { border-bottom: none; }
+  .runs-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 10px; font-weight: 600;
+  }
+  .badge.sent  { background: rgba(0,229,160,0.1);  color: var(--accent); }
+  .badge.skip  { background: rgba(124,106,255,0.1); color: var(--accent2); }
+  .badge.fail  { background: rgba(255,107,107,0.1); color: var(--warn); }
+
+  /* ── ACTIVITY FEED ── */
+  .activity { display: flex; flex-direction: column; gap: 6px; max-height: 340px; overflow-y: auto; }
+  .activity::-webkit-scrollbar { width: 3px; }
+  .activity::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .act-item {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 9px 12px; border-radius: 8px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.015);
+    font-size: 11px; line-height: 1.5;
+    animation: slideIn 0.3s ease both;
+  }
+
+  .act-time { color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+  .act-msg  { flex: 1; word-break: break-all; }
+
+  .act-item.sent   { border-left: 2px solid var(--accent); }
+  .act-item.failed { border-left: 2px solid var(--warn); }
+  .act-item.error  { border-left: 2px solid var(--warn); color: var(--warn); }
+
+  .act-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .sent   .act-dot { background: var(--accent); }
+  .failed .act-dot { background: var(--warn); }
+  .error  .act-dot { background: var(--warn); }
+
+  .empty { color: var(--muted); font-size: 12px; padding: 20px; text-align: center; }
+
+  /* ── DEPLOYMENT GUIDE ── */
+  .deploy-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 24px;
+    margin-top: 16px;
+    animation: fadeUp 0.5s 0.3s ease both;
+  }
+
+  .deploy-steps { display: flex; flex-direction: column; gap: 0; }
+
+  .deploy-step {
+    display: flex; gap: 16px; padding-bottom: 20px; position: relative;
+  }
+  .deploy-step:last-child { padding-bottom: 0; }
+  .deploy-step:last-child .step-line { display: none; }
+
+  .step-num {
+    width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+    background: rgba(0,229,160,0.1); border: 1px solid var(--accent);
+    color: var(--accent); font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; position: relative; z-index: 1;
+  }
+
+  .step-line {
+    position: absolute; left: 12px; top: 26px; bottom: 0;
+    width: 1px; background: var(--border);
+  }
+
+  .step-body { flex: 1; }
+  .step-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .step-desc  { font-size: 11px; color: var(--muted); line-height: 1.7; }
+
+  .code-inline {
+    display: inline-block; background: rgba(0,229,160,0.08);
+    border: 1px solid rgba(0,229,160,0.15); border-radius: 4px;
+    padding: 1px 6px; font-size: 10px; color: var(--accent);
+    white-space: pre; font-family: 'DM Mono', monospace;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes slideDown { from { opacity:0; transform:translateY(-14px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes fadeUp    { from { opacity:0; transform:translateY(14px);  } to { opacity:1; transform:translateY(0); } }
+  @keyframes slideIn   { from { opacity:0; transform:translateX(-8px);  } to { opacity:1; transform:translateX(0); } }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+  @media (max-width: 680px) {
+    .stats { grid-template-columns: repeat(2,1fr); }
+    .grid2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">Job<span>Blast</span> ⚡</div>
+    <div class="header-right">
+      <div class="status-pill" id="statusPill"><div class="dot"></div> <span id="statusText">Loading...</span></div>
+      <button class="btn-run" id="btnRun" onclick="triggerRun()">▶ Run Now</button>
+    </div>
+  </header>
+
+  <!-- STAT CARDS -->
+  <div class="stats">
+    <div class="stat sent">
+      <div class="stat-icon">✉️</div>
+      <div class="stat-num" id="totalSent">—</div>
+      <div class="stat-label">Total Sent</div>
+    </div>
+    <div class="stat skip">
+      <div class="stat-icon">⏭️</div>
+      <div class="stat-num" id="totalSkip">—</div>
+      <div class="stat-label">Skipped</div>
+    </div>
+    <div class="stat fail">
+      <div class="stat-icon">❌</div>
+      <div class="stat-num" id="totalFail">—</div>
+      <div class="stat-label">Failed</div>
+    </div>
+    <div class="stat total">
+      <div class="stat-icon">📋</div>
+      <div class="stat-num" id="totalRuns">—</div>
+      <div class="stat-label">Runs Total</div>
+    </div>
+  </div>
+
+  <div class="grid2">
+
+    <!-- SCHEDULE INFO -->
+    <div class="card">
+      <div class="sec-title">Schedule</div>
+      <div class="schedule-row">
+        <div class="sched-item">
+          <span class="sched-label">Frequency</span>
+          <span class="sched-val green">Daily at 8:00 AM IST</span>
+        </div>
+        <div class="sched-item">
+          <span class="sched-label">Last Run</span>
+          <span class="sched-val" id="lastRun">—</span>
+        </div>
+        <div class="sched-item">
+          <span class="sched-label">Next Run</span>
+          <span class="sched-val purple" id="nextRun">—</span>
+        </div>
+        <div class="sched-item">
+          <span class="sched-label">Daily Limit</span>
+          <span class="sched-val">30 emails / run</span>
+        </div>
+        <div class="sched-item">
+          <span class="sched-label">Recruiters Loaded</span>
+          <span class="sched-val green">628 contacts</span>
+        </div>
+        <div class="sched-item">
+          <span class="sched-label">Job Feeds</span>
+          <span class="sched-val">18 active feeds</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RUN HISTORY -->
+    <div class="card">
+      <div class="sec-title">Run History</div>
+      <div id="runsContainer">
+        <table class="runs-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Sent</th>
+              <th>Skipped</th>
+              <th>Failed</th>
+            </tr>
+          </thead>
+          <tbody id="runsBody">
+            <tr><td colspan="4" class="empty">No runs yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIVITY FEED -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="sec-title">Live Activity Feed</div>
+    <div class="activity" id="activityFeed">
+      <div class="empty">Waiting for first run...</div>
+    </div>
+  </div>
+
+  <!-- DEPLOYMENT GUIDE -->
+  <div class="deploy-card">
+    <div class="sec-title">Deploy to Railway (Free — Always On)</div>
+    <div class="deploy-steps">
+
+      <div class="deploy-step">
+        <div class="step-num">1</div><div class="step-line"></div>
+        <div class="step-body">
+          <div class="step-title">Push code to GitHub</div>
+          <div class="step-desc">
+            Create a GitHub repo and push all files from the <span class="code-inline">jobblast_hosted/</span> folder.
+            Make sure <span class="code-inline">recruiters.csv</span> and <span class="code-inline">resume.pdf</span> are included.
+          </div>
+        </div>
+      </div>
+
+      <div class="deploy-step">
+        <div class="step-num">2</div><div class="step-line"></div>
+        <div class="step-body">
+          <div class="step-title">Create free Railway account</div>
+          <div class="step-desc">
+            Go to <span class="code-inline">railway.app</span> → Sign up with GitHub → New Project → Deploy from GitHub repo.
+            Select your jobblast repo.
+          </div>
+        </div>
+      </div>
+
+      <div class="deploy-step">
+        <div class="step-num">3</div><div class="step-line"></div>
+        <div class="step-body">
+          <div class="step-title">Set environment variables</div>
+          <div class="step-desc">
+            In Railway → Variables tab, add:<br>
+            <span class="code-inline">GMAIL_USER</span> = venkatachetanofficial@gmail.com<br>
+            <span class="code-inline">GMAIL_PASS</span> = your app password<br>
+            <span class="code-inline">PORT</span> = 5000
+          </div>
+        </div>
+      </div>
+
+      <div class="deploy-step">
+        <div class="step-num">4</div><div class="step-line"></div>
+        <div class="step-body">
+          <div class="step-title">Deploy & get your live URL</div>
+          <div class="step-desc">
+            Railway auto-deploys and gives you a URL like <span class="code-inline">jobblast-xyz.railway.app</span>.
+            Open that URL to see this dashboard. Your automation runs 24/7 even when your PC is off.
+          </div>
+        </div>
+      </div>
+
+      <div class="deploy-step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Done! ✅</div>
+          <div class="step-desc">
+            Emails go out every morning at 8:00 AM IST automatically.
+            Use the <strong style="color:var(--accent)">▶ Run Now</strong> button above to trigger manually anytime.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+async function fetchStatus() {
+  try {
+    const res  = await fetch("/api/status");
+    const data = await res.json();
+    renderDashboard(data);
+  } catch(e) {
+    console.warn("Fetch failed", e);
+  }
+}
+
+function renderDashboard(d) {
+  // Stats
+  document.getElementById("totalSent").textContent = d.total_sent ?? 0;
+  document.getElementById("totalSkip").textContent = d.total_skipped ?? 0;
+  document.getElementById("totalFail").textContent = d.total_failed ?? 0;
+  document.getElementById("totalRuns").textContent = (d.runs ?? []).length;
+
+  // Schedule
+  document.getElementById("lastRun").textContent = d.last_run ?? "Never";
+  document.getElementById("nextRun").textContent = d.next_run ?? "Daily at 8:00 AM IST";
+
+  // Status pill
+  const pill = document.getElementById("statusPill");
+  const txt  = document.getElementById("statusText");
+  const btn  = document.getElementById("btnRun");
+  const s    = d.status ?? "idle";
+  pill.className = "status-pill " + (s === "running" ? "running" : s === "error" ? "error" : "");
+  txt.textContent = s === "running" ? "Running..." : s === "error" ? "Error" : "Idle — Scheduled";
+  btn.disabled = s === "running";
+
+  // Runs table
+  const tbody = document.getElementById("runsBody");
+  const runs  = d.runs ?? [];
+  if (runs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty">No runs yet</td></tr>';
+  } else {
+    tbody.innerHTML = runs.slice(0, 8).map(r => `
+      <tr>
+        <td style="color:var(--muted);font-size:10px">${r.date}</td>
+        <td><span class="badge sent">${r.sent}</span></td>
+        <td><span class="badge skip">${r.skipped}</span></td>
+        <td><span class="badge fail">${r.failed}</span></td>
+      </tr>
+    `).join("");
+  }
+
+  // Activity feed
+  const feed     = document.getElementById("activityFeed");
+  const activity = d.activity ?? [];
+  if (activity.length === 0) {
+    feed.innerHTML = '<div class="empty">Waiting for first run...</div>';
+  } else {
+    feed.innerHTML = activity.map(a => `
+      <div class="act-item ${a.type}">
+        <div class="act-dot"></div>
+        <span class="act-time">${a.time}</span>
+        <span class="act-msg">${a.msg}</span>
+      </div>
+    `).join("");
+  }
+}
+
+async function triggerRun() {
+  const btn = document.getElementById("btnRun");
+  btn.disabled = true;
+  btn.textContent = "Starting...";
+  try {
+    await fetch("/api/run", { method: "POST" });
+    setTimeout(fetchStatus, 1500);
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = "▶ Run Now";
+  }
+}
+
+// Poll every 5 seconds
+fetchStatus();
+setInterval(fetchStatus, 5000);
+</script>
+</body>
+</html>
